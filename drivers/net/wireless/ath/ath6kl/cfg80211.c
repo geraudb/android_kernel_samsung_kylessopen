@@ -148,15 +148,12 @@ static bool __ath6kl_cfg80211_sscan_stop(struct ath6kl_vif *vif)
 {
 	struct ath6kl *ar = vif->ar;
 
-	if (ar->state != ATH6KL_STATE_SCHED_SCAN)
-		return false;
+	if (!test_and_clear_bit(SCHED_SCANNING, &vif->flags))
+			return false;
 
 	del_timer_sync(&vif->sched_scan_timer);
 
-	ath6kl_wmi_set_host_sleep_mode_cmd(ar->wmi, vif->fw_vif_idx,
-					   ATH6KL_HOST_MODE_AWAKE);
-
-	ar->state = ATH6KL_STATE_ON;
+	ath6kl_wmi_enable_sched_scan_cmd(ar->wmi, vif->fw_vif_idx, false);
 
 	return true;
 }
@@ -2472,13 +2469,6 @@ int ath6kl_cfg80211_suspend(struct ath6kl *ar,
 
 		break;
 
-	case ATH6KL_CFG_SUSPEND_SCHED_SCAN:
-		/*
-		 * Nothing needed for schedule scan, firmware is already in
-		 * wow mode and sleeping most of the time.
-		 */
-		break;
-
 	default:
 		break;
 	}
@@ -2523,13 +2513,6 @@ int ath6kl_cfg80211_resume(struct ath6kl *ar)
 			ath6kl_warn("Failed to boot hw in resume: %d\n", ret);
 			return ret;
 		}
-		break;
-
-	case ATH6KL_STATE_SCHED_SCAN:
-#ifdef CONFIG_HAS_WAKELOCK
-		ath6kl_dbg(ATH6KL_DBG_SUSPEND, "sched scan 30s wake lock\n");
-		wake_lock_timeout(&ar->wake_lock, 30 * HZ);
-#endif
 		break;
 
 	default:
@@ -2598,7 +2581,7 @@ void ath6kl_check_wow_status(struct ath6kl *ar, struct sk_buff *skb,
 		return;
 	}
 
-	if (ar->state == ATH6KL_STATE_WOW || ar->state == ATH6KL_STATE_SCHED_SCAN)
+	if (ar->state == ATH6KL_STATE_WOW )
 		ath6kl_cfg80211_resume(ar);
 	else
 		ath6kl_config_suspend_wake_lock(ar, skb, is_event_pkt);
@@ -3299,15 +3282,6 @@ static int ath6kl_cfg80211_sscan_start(struct wiphy *wiphy,
 				  interval, interval,
 				  vif->bg_scan_period, 0, 0, 0, 3, 0, 0, 0);
 
-	ret = ath6kl_wmi_set_wow_mode_cmd(ar->wmi, vif->fw_vif_idx,
-					  ATH6KL_WOW_MODE_ENABLE,
-					  WOW_FILTER_SSID,
-					  WOW_HOST_REQ_DELAY);
-	if (ret) {
-		ath6kl_warn("Failed to enable wow with ssid filter: %d\n", ret);
-		return ret;
-	}
-
 	/* this also clears IE in fw if it's not set */
 	ret = ath6kl_wmi_set_appie_cmd(ar->wmi, vif->fw_vif_idx,
 				       WMI_FRAME_PROBE_REQ,
@@ -3318,17 +3292,14 @@ static int ath6kl_cfg80211_sscan_start(struct wiphy *wiphy,
 		return ret;
 	}
 
-	ret = ath6kl_wmi_set_host_sleep_mode_cmd(ar->wmi, vif->fw_vif_idx,
-						 ATH6KL_HOST_MODE_ASLEEP);
+	ret = ath6kl_wmi_enable_sched_scan_cmd(ar->wmi, vif->fw_vif_idx, true);
 	if (ret) {
-		ath6kl_warn("Failed to enable host sleep mode for sched scan: %d\n",
-			    ret);
 		return ret;
 	}
 
-	ar->state = ATH6KL_STATE_SCHED_SCAN;
+	set_bit(SCHED_SCANNING, &vif->flags);
 
-	return ret;
+	return 0;
 }
 
 static int ath6kl_cfg80211_sscan_stop(struct wiphy *wiphy,
