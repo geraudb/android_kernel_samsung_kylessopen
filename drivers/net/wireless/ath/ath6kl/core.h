@@ -167,9 +167,6 @@ enum ath6kl_fw_capability {
 	/* FW sets mac_addr[4] ^= 0x80 for newly created interfaces */
 	ATH6KL_FW_CAPABILITY_CUSTOM_MAC_ADDR,
 
-	/* Firmware supports sched scan decoupled from host sleep */
-	ATH6KL_FW_CAPABILITY_SCHED_SCAN_V2,
-
 	/* this needs to be last */
 	ATH6KL_FW_CAPABILITY_MAX,
 };
@@ -188,8 +185,6 @@ enum ath6kl_hw_flags {
 
 #define ATH6KL_FW_API2_FILE "fw-2.bin"
 #define ATH6KL_FW_API3_FILE "fw-3.bin"
-#define ATH6KL_FW_API4_FILE "fw-4.bin"
-
 
 /* AR6003 1.0 definitions */
 #define AR6003_HW_1_0_VERSION                 0x300002ba
@@ -578,7 +573,6 @@ enum ath6kl_vif_state {
 	NETDEV_MCAST_ALL_OFF,
 	NOTIFY_HSLEEP_EVT,
 	SLEEP_POLICY_ENABLED,
-	SCHED_SCANNING,
 };
 
 struct ath6kl_vif {
@@ -666,6 +660,7 @@ enum ath6kl_state {
 	ATH6KL_STATE_DEEPSLEEP,
 	ATH6KL_STATE_CUTPOWER,
 	ATH6KL_STATE_WOW,
+	ATH6KL_STATE_SCHED_SCAN,
 };
 
 struct ath6kl {

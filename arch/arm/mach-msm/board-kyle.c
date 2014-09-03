@@ -3743,9 +3743,9 @@ static int bluetooth_power(int on)
 		msleep(100);
 		gpio_direction_output(GPIO_RST_BT, GPIO_WLAN_LEVEL_HIGH);
 
-		bluesleep_start();
+		// Geraud bluesleep_start();
 	} else {
-		bluesleep_stop();
+		// Geraud bluesleep_stop();
 		msleep(10);
 		gpio_direction_output(GPIO_RST_BT, GPIO_WLAN_LEVEL_LOW);/* BT_RESET */
 
@@ -3767,6 +3767,7 @@ static int bluetooth_power(int on)
 static void __init bt_power_init(void)
 {
 	int rc = 0;
+        return; // Geraud
 
 /*
 #ifdef CONFIG_SAMSUNG_LPM_MODE
@@ -3779,7 +3780,7 @@ static void __init bt_power_init(void)
 */
 	pr_info("bt_power_init \n");
 
-	msm_bt_power_device_csr.dev.platform_data = &bluetooth_power;
+//Geraud	msm_bt_power_device_csr.dev.platform_data = &bluetooth_power;
 
 	pr_info("bt_gpio_init:low\n");
 
